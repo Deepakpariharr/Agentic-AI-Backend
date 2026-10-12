@@ -1,0 +1,12 @@
+# --- RAG evaluation (evals/rag/) ---------------------------------------
+# Install alongside requirements.txt in the SAME environment:
+#   pip install -r requirements.txt -r requirements-eval.txt
+#
+# ragas>=0.4 unconditionally imports langchain_community.chat_models.vertexai,
+# which no longer exists in langchain-community>=0.4 (its only requirement in
+# requirements.txt is unpinned, so a fresh install would otherwise resolve to
+# the latest, incompatible one). Pinning it here to the last version that
+# still has that module keeps ragas importable without patching anything;
+# verified compatible with this project's langchain-core/langchain-openai.
+langchain-community==0.3.31
+ragas==0.4.3

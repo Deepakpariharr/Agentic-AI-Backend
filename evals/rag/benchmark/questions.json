@@ -1,0 +1,212 @@
+[
+  {
+    "id": "handbook-1",
+    "source_id": "employee_handbook.txt",
+    "question": "How many days of paid vacation do full-time employees get per year?",
+    "expected_answer": "Full-time employees are entitled to 18 days of paid vacation per year.",
+    "evidence": ["entitled to 18 days of paid vacation per year"]
+  },
+  {
+    "id": "handbook-2",
+    "source_id": "employee_handbook.txt",
+    "question": "How many unused vacation days can be carried over into the next year?",
+    "expected_answer": "Up to 5 unused vacation days may be carried over into the next calendar year.",
+    "evidence": ["carried over into the next calendar year, up to a maximum of 5 days"]
+  },
+  {
+    "id": "handbook-3",
+    "source_id": "employee_handbook.txt",
+    "question": "How many days per week can employees work remotely with manager approval?",
+    "expected_answer": "Employees may work remotely up to 3 days per week with prior written approval from their manager.",
+    "evidence": ["work remotely up to 3 days per week with prior written approval from their manager"]
+  },
+  {
+    "id": "handbook-4",
+    "source_id": "employee_handbook.txt",
+    "question": "What percentage of the medical, dental, and vision premium does Acme Corp cover for employees?",
+    "expected_answer": "Acme Corp covers 90 percent of the premium for employees.",
+    "evidence": ["covers 90 percent of the premium for the base medical, dental, and vision plans for employees"]
+  },
+  {
+    "id": "handbook-5",
+    "source_id": "employee_handbook.txt",
+    "question": "What is the maximum daily meal reimbursement during business travel?",
+    "expected_answer": "Meals during business travel are reimbursed up to 75 dollars per day.",
+    "evidence": ["Meals during business travel are reimbursed up to 75 dollars per day"]
+  },
+  {
+    "id": "handbook-6",
+    "source_id": "employee_handbook.txt",
+    "question": "How much written notice should an employee give before resigning?",
+    "expected_answer": "Employees are asked to provide at least 2 weeks of written notice.",
+    "evidence": ["provide at least 2 weeks of written notice to their manager"]
+  },
+  {
+    "id": "api-1",
+    "source_id": "api_reference.txt",
+    "question": "How long is a Nimbus access token valid before it expires?",
+    "expected_answer": "Access tokens expire after 3600 seconds.",
+    "evidence": ["Access tokens expire after 3600 seconds"]
+  },
+  {
+    "id": "api-2",
+    "source_id": "api_reference.txt",
+    "question": "What is the standard-tier rate limit for the Nimbus API?",
+    "expected_answer": "The standard tier allows 120 requests per minute per API key.",
+    "evidence": ["rate limit of 120 requests per minute per API key on the standard tier"]
+  },
+  {
+    "id": "api-3",
+    "source_id": "api_reference.txt",
+    "question": "What is the minimum password length required to create a user via the Nimbus API?",
+    "expected_answer": "The password must be at least 12 characters and contain one number.",
+    "evidence": ["password must be at least 12 characters and contain one number"]
+  },
+  {
+    "id": "api-4",
+    "source_id": "api_reference.txt",
+    "question": "How long after creation can a Nimbus order be canceled with a DELETE request?",
+    "expected_answer": "Orders can be canceled within 15 minutes of creation.",
+    "evidence": ["Orders can be canceled within 15 minutes of creation"]
+  },
+  {
+    "id": "api-5",
+    "source_id": "api_reference.txt",
+    "question": "What header carries the signature used to verify a Nimbus webhook payload?",
+    "expected_answer": "The X-Nimbus-Signature header, using an HMAC-SHA256 signature.",
+    "evidence": ["signed with an HMAC-SHA256 signature in the X-Nimbus-Signature header"]
+  },
+  {
+    "id": "api-6",
+    "source_id": "api_reference.txt",
+    "question": "How long after a new major version releases will the previous Nimbus API version be shut down?",
+    "expected_answer": "The previous version will be shut down 12 months after a new major version is released.",
+    "evidence": ["will be shut down 12 months after a new major version is released"]
+  },
+  {
+    "id": "report-1",
+    "source_id": "quarterly_report.txt",
+    "question": "What was Meridian Robotics' total revenue in Q3 2025?",
+    "expected_answer": "Total revenue for Q3 2025 was 84.2 million dollars.",
+    "evidence": ["Total revenue for the third quarter of 2025 was 84.2 million dollars"]
+  },
+  {
+    "id": "report-2",
+    "source_id": "quarterly_report.txt",
+    "question": "What percentage of Meridian Robotics' Q3 2025 revenue came from North America?",
+    "expected_answer": "North America accounted for 46 percent of total revenue.",
+    "evidence": ["North America remained the largest market, accounting for 46 percent of total revenue"]
+  },
+  {
+    "id": "report-3",
+    "source_id": "quarterly_report.txt",
+    "question": "How much did Meridian Robotics spend on research and development in Q3 2025?",
+    "expected_answer": "Research and development spending was 19.8 million dollars.",
+    "evidence": ["Research and development spending was 19.8 million dollars"]
+  },
+  {
+    "id": "report-4",
+    "source_id": "quarterly_report.txt",
+    "question": "How many employees did Meridian Robotics have globally at the end of Q3 2025?",
+    "expected_answer": "Meridian Robotics employed 1,340 people globally at the end of Q3 2025.",
+    "evidence": ["Meridian Robotics employed 1,340 people globally"]
+  },
+  {
+    "id": "report-5",
+    "source_id": "quarterly_report.txt",
+    "question": "What new product did Meridian Robotics launch during Q3 2025?",
+    "expected_answer": "Meridian Robotics launched the Sentinel-4 autonomous inspection robot.",
+    "evidence": ["launched the Sentinel-4 autonomous inspection robot"]
+  },
+  {
+    "id": "report-6",
+    "source_id": "quarterly_report.txt",
+    "question": "What revenue range does Meridian Robotics management expect for Q4 2025?",
+    "expected_answer": "Management expects Q4 2025 revenue between 88 million and 93 million dollars.",
+    "evidence": ["management expects revenue between 88 million and 93 million dollars"]
+  },
+  {
+    "id": "faq-1",
+    "source_id": "product_faq.txt",
+    "question": "How much does the Lumen Notes Pro plan cost per month?",
+    "expected_answer": "The Pro plan costs 9 dollars per month.",
+    "evidence": ["Pro at 9 dollars per month"]
+  },
+  {
+    "id": "faq-2",
+    "source_id": "product_faq.txt",
+    "question": "How many days do you have to request a refund after being charged by Lumen Notes?",
+    "expected_answer": "Refunds are available within 14 days of a charge.",
+    "evidence": ["Refunds are available within 14 days of a charge"]
+  },
+  {
+    "id": "faq-3",
+    "source_id": "product_faq.txt",
+    "question": "How long is the grace period before a deleted Lumen Notes account's notes are permanently removed?",
+    "expected_answer": "There is a 30-day grace period before notes are permanently removed.",
+    "evidence": ["permanently removes all notes after a 30-day grace period"]
+  },
+  {
+    "id": "faq-4",
+    "source_id": "product_faq.txt",
+    "question": "What encryption does Lumen Notes use to protect data at rest?",
+    "expected_answer": "Notes are encrypted at rest using AES-256.",
+    "evidence": ["notes are encrypted at rest using AES-256"]
+  },
+  {
+    "id": "faq-5",
+    "source_id": "product_faq.txt",
+    "question": "Which Lumen Notes plan is required to use the Slack integration?",
+    "expected_answer": "The Slack integration requires a Team plan or higher.",
+    "evidence": ["requires a Team plan or higher"]
+  },
+  {
+    "id": "faq-6",
+    "source_id": "product_faq.txt",
+    "question": "What is the target first response time for Lumen Notes Pro plan email support?",
+    "expected_answer": "Pro plan email support has a target first response time of 24 hours.",
+    "evidence": ["email support with a target first response time of 24 hours"]
+  },
+  {
+    "id": "resume-1",
+    "source_id": "resume.txt",
+    "question": "How many years of backend engineering experience does Priya Nakamura have?",
+    "expected_answer": "Priya Nakamura has 8 years of backend engineering experience.",
+    "evidence": ["Backend engineer with 8 years of experience"]
+  },
+  {
+    "id": "resume-2",
+    "source_id": "resume.txt",
+    "question": "How much did Priya Nakamura reduce average payment transaction latency by at Fintech Solutions Inc.?",
+    "expected_answer": "She reduced average transaction latency from 800 milliseconds to 210 milliseconds.",
+    "evidence": ["reducing average transaction latency from 800 milliseconds to 210 milliseconds"]
+  },
+  {
+    "id": "resume-3",
+    "source_id": "resume.txt",
+    "question": "What sustained throughput did the clickstream ingestion service Priya built at DataStream Labs handle?",
+    "expected_answer": "It handled a sustained throughput of 50,000 events per second at peak.",
+    "evidence": ["sustained throughput of 50,000 events per second at peak"]
+  },
+  {
+    "id": "resume-4",
+    "source_id": "resume.txt",
+    "question": "Where and in what year did Priya Nakamura get her Bachelor's degree?",
+    "expected_answer": "She earned a Bachelor of Science in Computer Science from the University of Washington, graduating in 2017.",
+    "evidence": ["Bachelor of Science in Computer Science, University of Washington, graduated 2017"]
+  },
+  {
+    "id": "resume-5",
+    "source_id": "resume.txt",
+    "question": "What certification did Priya Nakamura obtain in 2022?",
+    "expected_answer": "She obtained the AWS Certified Solutions Architect - Professional certification in 2022.",
+    "evidence": ["AWS Certified Solutions Architect - Professional, obtained in 2022"]
+  },
+  {
+    "id": "resume-6",
+    "source_id": "resume.txt",
+    "question": "How many GitHub stars does Priya Nakamura's \"gorate\" library have?",
+    "expected_answer": "The gorate library has over 1,200 stars on GitHub.",
+    "evidence": ["has over 1,200 stars on GitHub"]
+  }
+]

@@ -1,0 +1,22 @@
+Nimbus Cloud API Reference
+
+Authentication
+All requests to the Nimbus API must include an Authorization header with a Bearer token, obtained from the /oauth/token endpoint using client credentials. Access tokens expire after 3600 seconds and must be refreshed using the associated refresh token, which is valid for 30 days. Requests made without a valid token receive a 401 Unauthorized response.
+
+Rate Limiting
+The API enforces a rate limit of 120 requests per minute per API key on the standard tier, and 1000 requests per minute on the enterprise tier. When the limit is exceeded, the API returns a 429 Too Many Requests response along with a Retry-After header indicating the number of seconds to wait. Rate limit usage can be checked via the X-RateLimit-Remaining header returned on every response.
+
+Users Endpoint
+The /v2/users endpoint supports GET, POST, and PATCH methods. A GET request to /v2/users/{id} returns the user's profile, including their email, display name, and account creation timestamp. Creating a user via POST requires the fields email, password, and full_name; the password must be at least 12 characters and contain one number.
+
+Orders Endpoint
+The /v2/orders endpoint allows creation and retrieval of orders. A POST request to /v2/orders requires a customer_id, a list of line_items, and a currency code. Orders can be canceled within 15 minutes of creation by sending a DELETE request to /v2/orders/{id}; after that window, cancellation must go through the refunds endpoint instead.
+
+Error Codes
+The API uses standard HTTP status codes along with a machine-readable error code in the response body. A 422 status with error code VALIDATION_FAILED indicates one or more fields did not pass validation, and the response includes a field-level breakdown. A 503 status with error code SERVICE_UNAVAILABLE indicates a temporary outage and clients should retry with exponential backoff starting at 2 seconds.
+
+Webhooks
+Webhooks can be configured in the developer dashboard to receive events such as order.created, order.canceled, and user.updated. Each webhook payload is signed with an HMAC-SHA256 signature in the X-Nimbus-Signature header, computed using the webhook's signing secret. Webhook endpoints must respond with a 2xx status within 5 seconds, or the delivery is retried up to 3 times with exponential backoff.
+
+API Versioning
+Nimbus follows a URL-based versioning scheme, with the current stable version being v2. The previous version, v1, is deprecated and will be shut down 12 months after a new major version is released. Breaking changes are only introduced in a new major version; minor additions such as new optional fields are added to the existing version without a version bump.

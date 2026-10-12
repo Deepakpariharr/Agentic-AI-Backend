@@ -1,0 +1,38 @@
+# --- Web API ---
+fastapi==0.141.1
+uvicorn==0.52.0
+python-multipart==0.0.32
+slowapi==0.1.10
+pydantic==2.13.4
+pydantic_core==2.46.4
+python-dotenv==1.2.2
+httpx==0.28.1
+
+# --- AWS Lambda / auth ---
+mangum==0.19.0
+boto3==1.35.99
+aws-lambda-powertools==3.35.0
+firebase-admin==7.5.0
+
+# --- LLM / agents (OpenAI via LangChain + LangGraph) ---
+openai==2.52.0
+langchain==1.3.15
+langchain-core==1.5.4
+langchain-openai==1.4.3
+langgraph==1.2.11
+langsmith==0.10.18
+
+# --- MCP: tool server (mcp_server/) and client (services/mcp_client.py) ---
+mcp==1.29.0
+langchain-mcp-adapters==0.3.2
+
+# --- PDF parsing ---
+PyMuPDF==1.28.0
+
+# --- RAG (services/rag/): token chunking, Qdrant hybrid search ---
+tiktoken==0.13.0
+langchain-text-splitters
+qdrant-client
+langchain-qdrant
+fastembed
+redis>=5,<8

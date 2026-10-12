@@ -1,0 +1,23 @@
+Priya Nakamura
+Senior Backend Engineer
+
+Summary
+Backend engineer with 8 years of experience building distributed systems and APIs for high-growth startups. Specializes in Python, Go, and event-driven architectures, with a track record of leading migrations from monolithic services to microservices without customer-facing downtime.
+
+Experience: Fintech Solutions Inc. (Senior Backend Engineer, 2021 to Present)
+Led the redesign of the payments processing pipeline, reducing average transaction latency from 800 milliseconds to 210 milliseconds by moving from synchronous REST calls to an event-driven architecture built on Kafka. Managed a team of 4 engineers responsible for the core ledger service, which processes over 2 million transactions per day. Introduced a canary deployment process that cut production incident rate by 35 percent over one year.
+
+Experience: DataStream Labs (Backend Engineer, 2017 to 2021)
+Built the ingestion service that processes real-time clickstream data from mobile and web clients, handling a sustained throughput of 50,000 events per second at peak. Migrated the company's primary datastore from a self-managed PostgreSQL cluster to a managed Aurora deployment, cutting infrastructure costs by 28 percent annually. Mentored 3 junior engineers who were later promoted to mid-level roles.
+
+Education
+Bachelor of Science in Computer Science, University of Washington, graduated 2017. Relevant coursework included distributed systems, database internals, and applied cryptography. Graduated with a GPA of 3.8.
+
+Skills
+Programming languages: Python, Go, TypeScript. Infrastructure: Kafka, Kubernetes, Terraform, AWS. Databases: PostgreSQL, Redis, DynamoDB. Practices: system design, on-call incident response, mentoring.
+
+Certifications
+AWS Certified Solutions Architect - Professional, obtained in 2022. Certified Kubernetes Administrator (CKA), obtained in 2020 and renewed in 2023.
+
+Side Projects
+Maintains an open-source rate-limiting library for Go, "gorate", which has over 1,200 stars on GitHub and is used in production by several small companies. Regularly writes a technical blog on distributed systems, with posts on idempotency keys and exactly-once delivery that have each been read over 20,000 times.

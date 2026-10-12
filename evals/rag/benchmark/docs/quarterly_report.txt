@@ -1,0 +1,19 @@
+Meridian Robotics Q3 2025 Shareholder Report
+
+Revenue Summary
+Total revenue for the third quarter of 2025 was 84.2 million dollars, an increase of 22 percent compared to the same quarter last year. The Enterprise Robotics segment contributed 51.6 million dollars of the total, while the Consumer Devices segment contributed 32.6 million dollars. Gross margin for the quarter was 61 percent, up from 57 percent in Q3 2024, driven mainly by lower component costs.
+
+Regional Breakdown
+North America remained the largest market, accounting for 46 percent of total revenue, followed by Europe at 29 percent and Asia-Pacific at 21 percent. The remaining 4 percent came from other regions. Asia-Pacific was the fastest-growing region, with revenue up 38 percent year over year, primarily due to a new manufacturing partnership signed in Vietnam in July 2025.
+
+Operating Expenses
+Total operating expenses for the quarter were 41.3 million dollars. Research and development spending was 19.8 million dollars, representing 24 percent of total revenue, reflecting continued investment in the next-generation warehouse robotics platform. Sales and marketing expenses were 14.5 million dollars, and general and administrative expenses were 7.0 million dollars.
+
+Headcount and Hiring
+As of the end of Q3 2025, Meridian Robotics employed 1,340 people globally, an increase of 180 employees since the start of the year. The engineering organization grew the fastest, adding 95 new hires, primarily in the robotics perception and controls teams. The company opened a new office in Austin, Texas in August 2025 to support this growth.
+
+Product Launches
+During the quarter, Meridian Robotics launched the Sentinel-4 autonomous inspection robot, which began shipping to customers in September 2025. The company also released a major software update for its fleet management platform, adding predictive maintenance alerts that reduced customer-reported downtime by 17 percent in early pilot deployments.
+
+Outlook
+For the fourth quarter of 2025, management expects revenue between 88 million and 93 million dollars, representing continued double-digit year-over-year growth. The company reaffirmed its full-year gross margin target of 60 to 62 percent and expects to end the year with headcount between 1,400 and 1,450 employees.
