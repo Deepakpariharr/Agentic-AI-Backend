@@ -50,8 +50,7 @@ app = FastAPI(
 )
 
 # ------------------ CORS ------------------
-# On Lambda, API Gateway's CorsConfiguration (template.yaml) applies instead;
-# keep the production origins in sync with it.
+# Keep these production origins in sync with the frontend deployments.
 origins = [
     "https://dbaichat.space",
     "https://mcpfrontend.web.app",

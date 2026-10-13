@@ -48,9 +48,7 @@ async def firebase_auth_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
         return await call_next(request)
 
-    # Health and API docs are public; every other route needs a valid Firebase
-    # token. Keep this list in sync with the `Authorizer: NONE` routes in
-    # template.yaml, where API Gateway enforces the same rule before Lambda.
+    # Health and API docs are public; every other route needs a valid Firebase token.
     if request.url.path in ["/", "/docs", "/redoc", "/openapi.json"]:
         return await call_next(request)
 

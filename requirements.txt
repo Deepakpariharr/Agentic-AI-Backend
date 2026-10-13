@@ -8,8 +8,7 @@ pydantic_core==2.46.4
 python-dotenv==1.2.2
 httpx==0.28.1
 
-# --- AWS Lambda / auth ---
-mangum==0.19.0
+# --- AWS SSM / auth ---
 boto3==1.35.99
 aws-lambda-powertools==3.35.0
 firebase-admin==7.5.0
