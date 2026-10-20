@@ -32,7 +32,11 @@ graph TD
     MCP -->|stdio| MCPServer[Isolated MCP Server]
     MCPServer --> Tool1[tools/calculator.py]
     MCPServer --> Tool2[tools/web_search.py]
-    MCPServer --> Tool3[Qdrant Vector DB]
+    
+    %% Explicitly highlighting Agentic RAG 
+    MCPServer --> Tool3[Agentic RAG / Qdrant Vector Search]
+    Tool3 -->|Retrieved Context Array| MCPServer
+  
 ```
     
 ```text
