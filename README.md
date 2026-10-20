@@ -12,6 +12,29 @@ Designed for high-throughput enterprise environments, this gateway is containeri
 
 The system orchestrates two primary AI pipelines that share a unified set of enterprise tools, isolated and served over standard IO streams via MCP.
 
+
+```mermaid
+graph TD
+    Client[Client Application] -->|POST /chat| APIGW[AWS API Gateway]
+    APIGW -->|JWT Validation + Edge Throttle| FastAPI[FastAPI App / Mangum]
+    
+    FastAPI --> Cache{Semantic Cache}
+    Cache -->|Hit >= 0.92 Cosine| Return[Return Cached Response]
+    Cache -->|Miss| LangGraph[LangGraph State Machine]
+    
+    LangGraph --> Checkpoint[(PostgreSQL Checkpointer)]
+    LangGraph --> Router{Dynamic Model Router}
+    
+    Router -->|Reasoning Task| Heavy[Frontier Model: gpt-4o / claude-3.5]
+    Router -->|Extraction/Parsing| Light[Fast Model: gpt-4o-mini / haiku]
+    
+    LangGraph --> MCP[services/mcp_client.py]
+    MCP -->|stdio| MCPServer[Isolated MCP Server]
+    MCPServer --> Tool1[tools/calculator.py]
+    MCPServer --> Tool2[tools/web_search.py]
+    MCPServer --> Tool3[Qdrant Vector DB]
+```
+    
 ```text
 POST /chat/mcpAgentChat ─► services/agent_service.py   (LangChain Agent; stateless execution)
 POST /chat/documents    ─► services/rag_agent/          (LangGraph Agent; strict state machine)
