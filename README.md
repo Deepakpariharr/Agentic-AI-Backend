@@ -30,7 +30,7 @@ graph TD
     
     LangGraph --> MCP[services/mcp_client.py]
     MCP -->|stdio| MCPServer[Isolated MCP Server]
-    MCPServer --> Tool1[tools/calculator.py]
+    MCPServer --> Tool1[tools/job_search.py]
     MCPServer --> Tool2[tools/web_search.py]
     
     %% Explicitly highlighting Agentic RAG 
