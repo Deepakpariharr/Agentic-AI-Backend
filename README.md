@@ -45,7 +45,7 @@ POST /chat/documents    ─► services/rag_agent/          (LangGraph Agent; st
                                  │
                                  ▼
                     services/mcp_client.py  ── stdio ──►  mcp_server/ (Isolated execution)
-                    (MCP client, session cache)            ├─ calculate    tools/calculator.py
+                    (MCP client, session cache)            ├─ RAG 
                                                            ├─ search_jobs  tools/jobs.py
                                                            └─ search_web   tools/web_search.py
 ```
