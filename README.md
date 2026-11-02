@@ -4,7 +4,7 @@ A production-grade, asynchronous FastAPI backend orchestrating multi-agent AI wo
 
 Designed for high-throughput enterprise environments, this gateway is containerized and deployed to **AWS Lambda** (Linux/arm64) behind an API Gateway, utilizing strict dual-layer rate limiting, Firebase JWT authentication, and zero-plaintext secret management.
 
-**Live Architecture Demo:** [dbaichat.space](https://dbaichat.space) | Interactive Swagger UI: `/docs`
+** Interactive Swagger UI: `/docs`
 
 ---
 
