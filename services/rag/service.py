@@ -7,7 +7,14 @@ from langchain_core.documents import Document
 from redis import exceptions as redis_exceptions
 from redis.asyncio import Redis
 
-from config import REDIS_URL, RERANK_TOP_N, RETRIEVAL_TOP_K
+from config import (
+    RAG_CACHE_LOCK_TIMEOUT,
+    RAG_CACHE_TTL_SECONDS,
+    REDIS_KEY_PREFIX,
+    REDIS_URL,
+    RERANK_TOP_N,
+    RETRIEVAL_TOP_K,
+)
 from prompts import wrap_untrusted
 
 from .ingestion import DocumentIngestor
@@ -21,7 +28,7 @@ NO_CONTEXT_MESSAGE = "No relevant context found in uploaded documents."
 
 def citation_label(doc: Document) -> str:
     """Stable, human-readable label the model must cite, e.g. 'resume.pdf#3'."""
-    source = doc.metadata.get("source_id", "unknown")
+    source = doc.metadata.get("file_name") or doc.metadata.get("source_id", "unknown")
     chunk = doc.metadata.get("chunk_index", "?")
     return f"{source}#{chunk}"
 
@@ -41,7 +48,34 @@ def _generate_cache_key(
 ) -> str:
     normalized_query = query.strip().lower()
     query_hash = hashlib.sha256(normalized_query.encode()).hexdigest()
-    return f"rag:{session_id}:v{version}:{query_hash}:k{retrieval_top_k}:n{top_n}"
+    return (
+        f"{REDIS_KEY_PREFIX}:rag:{session_id}:v{version}:"
+        f"{query_hash}:k{retrieval_top_k}:n{top_n}"
+    )
+
+
+def _doc_version_key(session_id: str) -> str:
+    return f"{REDIS_KEY_PREFIX}:session:{session_id}:doc_version"
+
+
+def _build_redis(redis_url: str | None) -> Redis | None:
+    """Shared Redis client, or None when no REDIS_URL is set (cache off).
+
+    Timeouts prevent an unreachable Redis from hanging requests instead of
+    falling back to uncached retrieval.
+    health_check_interval replaces connections that went stale while the
+    container was frozen between requests.
+    """
+    if not redis_url:
+        return None
+    return Redis.from_url(
+        redis_url,
+        decode_responses=True,
+        socket_connect_timeout=2,
+        socket_timeout=2,
+        health_check_interval=30,
+        retry_on_timeout=True,
+    )
 
 
 class RAGService:
@@ -56,15 +90,13 @@ class RAGService:
         self.ingestor = DocumentIngestor()
         self.retriever = retriever if retriever is not None else HybridRetriever()
         self.reranker = get_reranker()
-        self.redis = (
-            Redis.from_url(redis_url, decode_responses=True) if redis_url else None
-        )
+        self.redis = _build_redis(redis_url)
 
     async def _get_doc_version(self, session_id: str) -> int:
         if self.redis is None:
             return 0
         try:
-            version = await self.redis.get(f"session:{session_id}:doc_version")
+            version = await self.redis.get(_doc_version_key(session_id))
         except redis_exceptions.RedisError:
             logger.exception("Redis version lookup failed; bypassing cache.")
             return 0
@@ -74,15 +106,22 @@ class RAGService:
         if self.redis is None:
             return
         try:
-            await self.redis.incr(f"session:{session_id}:doc_version")
+            await self.redis.incr(_doc_version_key(session_id))
         except redis_exceptions.RedisError:
             logger.exception("Redis version update failed; cached results may persist.")
 
+    # This function will get the data raw_text, session_id and source_id
     async def ingest_document(
-        self, raw_text: str, session_id: str, source_id: str
+        self,
+        raw_text: str,
+        session_id: str,
+        source_id: str,
+        file_name: str | None = None,
     ) -> str:
         try:
-            docs = self.ingestor.process_document(raw_text, session_id, source_id)
+            docs = self.ingestor.process_document(
+                raw_text, session_id, source_id, file_name=file_name
+            )
             success = await self.retriever.add_chunks(docs)
             if success:
                 await self._bump_doc_version(session_id)
@@ -118,7 +157,9 @@ class RAGService:
         try:
             if self.redis is not None:
                 lock = self.redis.lock(
-                    f"lock:{cache_key}", timeout=10, blocking_timeout=5
+                    f"{cache_key}:lock",
+                    timeout=RAG_CACHE_LOCK_TIMEOUT,
+                    blocking_timeout=5,
                 )
                 try:
                     acquired = await lock.acquire()
@@ -165,7 +206,7 @@ class RAGService:
                             for doc in docs
                         ]
                     )
-                    await self.redis.set(cache_key, serialized_docs, ex=7200)
+                    await self.redis.set(cache_key, serialized_docs, ex=RAG_CACHE_TTL_SECONDS)
                 except (redis_exceptions.RedisError, TypeError, ValueError):
                     logger.exception("Redis cache write failed.")
 
@@ -199,6 +240,7 @@ class RAGService:
         deleted_count = await self.retriever.delete_document(session_id, source_id)
         if deleted_count > 0:
             await self._bump_doc_version(session_id)
+            await self._purge_session_cache(session_id)
         return deleted_count
 
     async def search_context(self, query: str, session_id: str) -> str:
@@ -210,3 +252,22 @@ class RAGService:
         except Exception as e:
             logger.exception(f"Search pipeline error: {e}")
             return "Critical error during context retrieval."
+
+    async def _purge_session_cache(self, session_id: str) -> None:
+        """Drop this user's cached chunks now, so text from a deleted document
+        doesn't linger in Redis until the TTL."""
+        if self.redis is None:
+            return
+        try:
+            batch = []
+            async for key in self.redis.scan_iter(
+                match=f"{REDIS_KEY_PREFIX}:rag:{session_id}:*", count=200
+            ):
+                batch.append(key)
+                if len(batch) >= 200:
+                    await self.redis.unlink(*batch)
+                    batch.clear()
+            if batch:
+                await self.redis.unlink(*batch)
+        except redis_exceptions.RedisError:
+            logger.exception("Redis cache purge failed; entries will expire via TTL.")

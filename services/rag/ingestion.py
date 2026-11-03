@@ -27,6 +27,7 @@ class DocumentIngestor:
         session_id: str,
         source_id: str,
         doc_type: str = "general",
+        file_name: str | None = None,
     ) -> list[Document]:
         if not text or not text.strip():
             return []
@@ -40,6 +41,7 @@ class DocumentIngestor:
                 source_id=source_id,    # file name is called here the source Id 
                 chunk_index=index,    # cuhnk position together with doc it forms citations like resume.pdf#3, resume.pdf#4 kind of 
                 document_type=doc_type, #  what kind of documents i si t in general or something else tag
+                file_name=file_name,
             )
             validated_docs.append(
                 Document(page_content=chunk_text, metadata=meta.model_dump())

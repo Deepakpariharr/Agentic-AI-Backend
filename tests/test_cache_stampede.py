@@ -5,6 +5,7 @@ import pytest
 from langchain_core.documents import Document
 
 from services.rag import RAGService
+from tests.local_redis import FakeRedis
 
 
 class MockRetriever:
@@ -33,19 +34,18 @@ class MockReranker:
 
 @pytest.mark.asyncio
 async def test_cache_stampede_prevention():
-    """Prove that 10 simultaneous requests only trigger 1 database hit."""
+    """10 simultaneous identical requests must trigger only 1 search + 1 rerank."""
     mock_retriever = MockRetriever()
     mock_reranker = MockReranker()
 
-    rag_service = RAGService(retriever=mock_retriever, redis_url="redis://localhost:6379")
+    rag_service = RAGService(retriever=mock_retriever, redis_url=None)
+    rag_service.redis = FakeRedis()  # shared lock + cache, no real server needed
     rag_service.reranker = mock_reranker
 
     session_id = f"test_user_{uuid.uuid4().hex}"
     query = "What is the holiday policy?"
 
-    # Fire concurrent requests without clearing data belonging to other Redis users.
-    tasks = [rag_service.retrieve(query, session_id) for _ in range(10)]
-    results = await asyncio.gather(*tasks)
+    results = await asyncio.gather(*[rag_service.retrieve(query, session_id) for _ in range(10)])
 
     assert len(results) == 10
     for res in results:
