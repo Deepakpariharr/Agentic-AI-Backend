@@ -9,11 +9,7 @@ isolated end to end.
 Runs on **AWS Lambda** (container image) behind **API Gateway**, provisioned with **AWS SAM** and
 shipped through GitHub Actions.
 
-<<<<<<< Updated upstream
-** Interactive Swagger UI: `/docs`
-=======
 **Live app:** [dbaichat.space](https://dbaichat.space) · **API docs:** `/docs`
->>>>>>> Stashed changes
 
 ---
 
@@ -27,44 +23,6 @@ shipped through GitHub Actions.
 - **Defence in depth.** Firebase JWT verified at the API Gateway and again in the app, prompt-injection guards on all third-party text, secrets only in SSM Parameter Store.
 - **Measured quality.** Offline unit tests with coverage gates in CI, plus RAG (Ragas, Recall@5, MRR, NDCG) and agent-behaviour (deepeval) evaluation suites.
 
-<<<<<<< Updated upstream
-
-```mermaid
-graph TD
-    Client[Client Application] -->|POST /chat| APIGW[AWS API Gateway]
-    APIGW -->|JWT Validation + Edge Throttle| FastAPI[FastAPI App / Mangum]
-    
-    FastAPI --> Cache{Semantic Cache}
-    Cache -->|Hit >= 0.92 Cosine| Return[Return Cached Response]
-    Cache -->|Miss| LangGraph[LangGraph State Machine]
-    
-    LangGraph --> Checkpoint[(PostgreSQL Checkpointer)]
-    LangGraph --> Router{Dynamic Model Router}
-    
-    Router -->|Reasoning Task| Heavy[Frontier Model: gpt-4o / claude-3.5]
-    Router -->|Extraction/Parsing| Light[Fast Model: gpt-4o-mini / haiku]
-    
-    LangGraph --> MCP[services/mcp_client.py]
-    MCP -->|stdio| MCPServer[Isolated MCP Server]
-    MCPServer --> Tool1[tools/job_search.py]
-    MCPServer --> Tool2[tools/web_search.py]
-    
-    %% Explicitly highlighting Agentic RAG 
-    MCPServer --> Tool3[Agentic RAG / Qdrant Vector Search]
-    Tool3 -->|Retrieved Context Array| MCPServer
-  
-```
-    
-```text
-POST /chat/mcpAgentChat ─► services/agent_service.py   (LangChain Agent; stateless execution)
-POST /chat/documents    ─► services/rag_agent/          (LangGraph Agent; strict state machine)
-                                 │
-                                 ▼
-                    services/mcp_client.py  ── stdio ──►  mcp_server/ (Isolated execution)
-                    (MCP client, session cache)            ├─ RAG 
-                                                           ├─ search_jobs  tools/jobs.py
-                                                           └─ search_web   tools/web_search.py
-=======
 ---
 
 ## Architecture
@@ -90,7 +48,6 @@ flowchart TD
     A2 --> CP
     CP --> PG[(Postgres<br/>conversations · documents · checkpoints)]
     CONV --> PG
->>>>>>> Stashed changes
 ```
 
 **Each store does one job:**
@@ -258,18 +215,6 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 ## Repository layout
 
 ```text
-<<<<<<< Updated upstream
-├── .github/workflows/          # CI/CD pipelines (pr-check.yml, deploy.yml)
-├── evals/                      # Offline LLM Evaluation frameworks (DeepEval, Ragas)
-├── mcp_server/                 # Model Context Protocol tools and server
-├── middleware/                 # Request interceptors (rate_limiter, firebase auth)
-├── prompts/                    # Version-controlled prompt engineering
-├── services/                   # Core Business & AI Logic (LangGraph, Vector Search)
-├── tests/                      # Extensive unit testing suite
-├── lambda_handler.py           # Serverless execution entry point for AWS (Mangum)
-├── template.yaml               # AWS SAM Infrastructure as Code
-└── main.py                     # FastAPI application factory
-=======
 ├── controllers/          # HTTP routes: chat, conversations, documents
 ├── services/
 │   ├── agent_service.py  # LangChain tool-calling agent
@@ -289,5 +234,4 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 ├── template.yaml         # AWS SAM infrastructure
 ├── Dockerfile            # Lambda container image
 └── docker-compose.yml    # Local Postgres, Redis, Qdrant
->>>>>>> Stashed changes
 ```
