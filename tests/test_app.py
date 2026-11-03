@@ -1,11 +1,11 @@
-"""App wiring: startup/shutdown, Depends() singletons and request-id middleware."""
+"""App wiring: startup/shutdown (main.lifespan), Depends() singletons,
+and request-id middleware behavior."""
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-
 import dependencies
 import main
 from middleware.request_id import request_id_middleware

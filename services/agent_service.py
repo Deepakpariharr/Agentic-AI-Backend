@@ -7,19 +7,19 @@ from langchain.agents import create_agent
 from langchain.agents.middleware import AgentState, Runtime, before_model
 from langchain_core.messages import HumanMessage, RemoveMessage, trim_messages
 from langchain_openai import ChatOpenAI
-from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph.message import REMOVE_ALL_MESSAGES
 from langsmith import traceable
 
 from config import OPEN_API_KEY, orgnId
 from prompts import MCP_AGENT_SYSTEM_PROMPT
+from services.checkpointer import get_checkpointer
+from services.conversation_service import legacy_thread_id
 from services.mcp_client import get_mcp_tools
 from services.pdf_reader import read_pdf as pdf_reader_fn
 
 logger = logging.getLogger(__name__)
 
 
-memory=MemorySaver()
 
 # How much chat history to keep per user. Older messages are dropped from the
 # checkpointed state entirely, so a long conversation can't keep growing the
@@ -86,7 +86,7 @@ async def _get_agent():
             tools=tools,
             system_prompt=MCP_AGENT_SYSTEM_PROMPT,
             middleware=[_trim_history],
-            checkpointer=memory
+            checkpointer=await get_checkpointer(),
         )
         return _agent
 
@@ -94,22 +94,14 @@ async def _get_agent():
 
 @traceable()
 async def agent_response(
-    user_prompt: str, file: UploadFile = None, *, user_id: str
+    user_prompt: str,
+    file: UploadFile = None,
+    *,
+    user_id: str,
+    thread_id: str | None = None,
 ) -> str:
-    """
-    AI agent that automatically decides when and which tools to call.
-    Tools are served by a real MCP server (mcp_server/server.py) over stdio.
-    Supports multi-step reasoning (chaining tools) via a LangChain tool-calling agent.
-
-    user_id is keyword-only on purpose: it becomes the checkpointer's thread_id,
-    so getting it wrong would hand one user another user's chat history.
-    """
     try:
-        # 🧠 Step 1: Build the user input, folding in PDF content if uploaded.
-        # Done as a direct local call (not an MCP round-trip) since this is
-        # deterministic pre-processing, not something the agent is deciding to do
-        input_text = user_prompt
-        
+        input_text = user_prompt   # here we can use light llm for query rewriting
         if file:
             file_bytes = await file.read()
             pdf_base64 = base64.b64encode(file_bytes).decode("utf-8")
@@ -126,11 +118,12 @@ async def agent_response(
         # 🧩 Step 3: Run the agent (LangChain handles the multi-tool reasoning loop)
         result = await agent.ainvoke(
             {"messages": [HumanMessage(content=input_text)]},
-            # thread_id scopes the checkpointed history to one user, so each
-            # caller resumes their own conversation and nobody else's.
+            # thread_id scopes the checkpointed history: a conversation's own
+            # thread when the caller names one (ownership already checked by the
+            # controller), otherwise that user's single default thread.
             config={
                 "recursion_limit": 12,  # roughly mirrors the old 5-step cap
-                "configurable": {"thread_id": user_id},
+                "configurable": {"thread_id": thread_id or legacy_thread_id("mcp", user_id)},
             },
         )
 

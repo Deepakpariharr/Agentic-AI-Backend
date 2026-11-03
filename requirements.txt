@@ -8,9 +8,7 @@ pydantic_core==2.46.4
 python-dotenv==1.2.2
 httpx==0.28.1
 
-# --- AWS SSM / auth ---
-boto3==1.35.99
-aws-lambda-powertools==3.35.0
+# --- Auth ---
 firebase-admin==7.5.0
 
 # --- LLM / agents (OpenAI via LangChain + LangGraph) ---
@@ -30,8 +28,13 @@ PyMuPDF==1.28.0
 
 # --- RAG (services/rag/): token chunking, Qdrant hybrid search ---
 tiktoken==0.13.0
-langchain-text-splitters
-qdrant-client
-langchain-qdrant
-fastembed
+langchain-text-splitters==1.1.2
+qdrant-client==1.19.1
+langchain-qdrant==1.1.0
+fastembed==0.8.1
 redis>=5,<8
+
+# --- Postgres: conversations/documents tables + LangGraph checkpointer ---
+sqlalchemy[asyncio]
+psycopg[binary,pool]
+langgraph-checkpoint-postgres

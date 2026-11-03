@@ -6,28 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 
-# --- How settings are loaded ---------------------------------------------
-
-SSM_PREFIX = os.getenv("SSM_PREFIX")  # "/mcpbe/prod" on Lambda, unset locally
-
-
-def _load_from_ssm(prefix: str) -> dict[str, str]:
-    import boto3
-    paginator = boto3.client("ssm").get_paginator("get_parameters_by_path")
-    values: dict[str, str] = {}
-    for page in paginator.paginate(Path=prefix, Recursive=True, WithDecryption=True):
-        for param in page["Parameters"]:
-            name = param["Name"].rsplit("/", 1)[-1]  # "/mcpbe/prod/X" -> "X"
-            values[name] = param["Value"]
-    return values
-
-
-_ssm_values: dict[str, str] = _load_from_ssm(SSM_PREFIX) if SSM_PREFIX else {}
-
-
 def get(name: str, default: str | None = None) -> str | None:
-    """SSM first, then environment / .env, then `default`."""
-    return _ssm_values.get(name) or os.getenv(name, default)
+    """Read from the environment / .env, then `default`."""
+    return os.getenv(name, default)
 
 
 def get_int(name: str, default: int) -> int:
@@ -50,7 +31,8 @@ orgnId = get("orgnId")
 RAPIDAPI_KEY = get("RAPIDAPI_KEY")              # job search
 TAVILY_API_KEY = get("TAVILY_API_KEY")          # web search
 FIREBASE_ADMIN_KEY = get("FIREBASE_ADMIN_KEY")  # service-account JSON string
-
+DATABASE_URL = get("DATABASE_URL")
+DB_POOL_MAX = get_int("DB_POOL_MAX", 3)
 DISABLE_AUTH = get_bool("DISABLE_AUTH")  # local development only
 
 
@@ -75,6 +57,20 @@ QDRANT_API_KEY = get("QDRANT_API_KEY")
 QDRANT_COLLECTION_NAME = get("QDRANT_COLLECTION_NAME", "enterprise_docs")
 REDIS_URL = get("REDIS_URL")
 
+# Every Redis key starts with the environment name, so environments sharing one
+# Redis never read each other's cache.
+APP_ENV = get("APP_ENV", "local")
+REDIS_KEY_PREFIX = f"mcpbe:{APP_ENV}"
+RAG_CACHE_TTL_SECONDS = get_int("RAG_CACHE_TTL_SECONDS", 7200)  # 2 hours
+# Must exceed a worst-case search + rerank, or the stampede lock expires mid-work.
+RAG_CACHE_LOCK_TIMEOUT = get_int("RAG_CACHE_LOCK_TIMEOUT", 30)
+
+
+# --- Postgres (conversations, documents, LangGraph memory) ---------------
+# Unset = no database (chat memory falls back to in-process MemorySaver).
+
+DATABASE_URL = get("DATABASE_URL")
+DB_POOL_MAX = get_int("DB_POOL_MAX", 3)
 
 # --- Chunking (sizes in tokens) ------------------------------------------
 

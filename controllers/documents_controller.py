@@ -7,6 +7,7 @@ from dependencies import get_rag_service
 from middleware.firebase_middleware import _extract_uid_from_state
 from middleware.rate_limiter import limiter
 from model.response_models import error_response, not_found_response, success_response
+from services import document_registry
 from services.rag import RAGService
 
 logger = logging.getLogger(__name__)
@@ -42,6 +43,12 @@ async def list_documents(
 ):
     session_id = _require_session_id(request)
 
+    # Postgres knows filenames, sizes and status; fall back to counting chunks in
+    # Qdrant when there is no database (or it is unreachable).
+    documents = await document_registry.list_documents(session_id)
+    if documents is not None:
+        return success_response(data={"documents": documents}, message="Documents retrieved")
+
     try:
         documents = await rag.list_documents(session_id=session_id)
     except Exception as e:
@@ -51,6 +58,7 @@ async def list_documents(
     return success_response(data={"documents": documents}, message="Documents retrieved")
 
 
+# Source Id is Related to the Unique of Document in Vector
 @router.delete("/{source_id:path}")
 @limiter.limit("20/minute")
 async def delete_document(
@@ -66,7 +74,12 @@ async def delete_document(
         logger.error(f"Failed to delete document {source_id!r} for session {session_id}: {e}", exc_info=True)
         return error_response(message="Failed to delete document.")
 
-    if deleted_chunks == 0:
+    # Chunks first, registry row last: if the Qdrant delete failed we returned above and
+    # the row remains, so the user can retry. A leftover row (e.g. a failed upload with
+    # no chunks) is cleaned up here too.
+    had_row = await document_registry.forget(session_id, source_id)
+
+    if deleted_chunks == 0 and not had_row:
         return not_found_response(message=f"No document named '{source_id}' found for this user.")
 
     return success_response(

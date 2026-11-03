@@ -1,24 +1,27 @@
 from contextlib import asynccontextmanager
+from datetime import datetime, timezone
+import logging
 
-from aws_lambda_powertools import Logger
-from aws_lambda_powertools.logging.utils import copy_config_to_registered_loggers
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
 
-from config import DISABLE_AUTH, SSM_PREFIX
+from config import DISABLE_AUTH
 from controllers.chat_controller import router as chat_router
+from controllers.conversations_controller import router as conversations_router
 from controllers.documents_controller import router as documents_router
+from db.engine import dispose_engine
 from dependencies import get_rag_service
 from middleware.firebase_middleware import firebase_auth_middleware
 from middleware.rate_limiter import limiter
 from middleware.request_id import request_id_middleware
 from model.response_models import ResponseModel, success_response
+from services.checkpointer import close_checkpointer
 from services.mcp_client import close_mcp_client
 from services.rag.retrieval import CollectionSchemaError
 
-logger = Logger(service="mcpbe")
+logger = logging.getLogger(__name__)
 
 
 @asynccontextmanager
@@ -40,6 +43,8 @@ async def lifespan(app: FastAPI):
 
     # Shutdown: close every MCP session and the tool-server subprocess.
     await close_mcp_client()
+    await close_checkpointer()
+    await dispose_engine()
 
 
 app = FastAPI(
@@ -50,15 +55,7 @@ app = FastAPI(
 )
 
 # ------------------ CORS ------------------
-# Keep these production origins in sync with the frontend deployments.
-origins = [
-    "https://dbaichat.space",
-    "https://mcpfrontend.web.app",
-]
-# The frontend's dev server, allowed only when running locally (SSM_PREFIX is
-# set on Lambda, unset locally).
-if not SSM_PREFIX:
-    origins.append("http://localhost:3000")
+origins = ["http://localhost:3000"]
 
 app.add_middleware(
     CORSMiddleware,
@@ -77,9 +74,6 @@ else:
 app.state.limiter = limiter
 
 app.middleware("http")(request_id_middleware)
-copy_config_to_registered_loggers(source_logger=logger)
-
-
 # ------------------ Rate limit handler ------------------
 async def custom_exception_handler(request: Request, exc: RateLimitExceeded):
     return JSONResponse(
@@ -97,6 +91,7 @@ app.add_exception_handler(RateLimitExceeded, custom_exception_handler)
 # ------------------ Routers ------------------
 app.include_router(chat_router)
 app.include_router(documents_router)
+app.include_router(conversations_router)
 
 
 # ------------------ Health ------------------
@@ -106,8 +101,8 @@ async def root():
     return success_response(
         data={
             "status": "healthy",
-            "version": "1.0.0",
-            "timestamp": "2025-10-26T06:30:00Z"
+            "version": app.version,
+            "timestamp": datetime.now(timezone.utc).isoformat()
         },
         message="FastAPI MCP Backend is running!"
     )

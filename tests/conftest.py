@@ -1,9 +1,9 @@
 """Shared test setup.
 
-Several app modules do real work at import time (config reads .env/SSM,
+Several app modules do real work at import time (config reads .env,
 firebase_middleware loads a service-account key, agent_service builds an
 OpenAI client). The module-level code below runs before any test imports the
-app, so the suite is hermetic: no .env, no SSM, no Firebase key, no network.
+app, so the suite is hermetic: no .env, no Firebase key, no network.
 """
 import os
 
@@ -14,7 +14,6 @@ import firebase_admin
 dotenv.load_dotenv = lambda *args, **kwargs: False
 
 for _key in (
-    "SSM_PREFIX",
     "OPEN_API_KEY",
     "orgnId",
     "RAPIDAPI_KEY",
@@ -22,6 +21,8 @@ for _key in (
     "FIREBASE_ADMIN_KEY",
     "LANGSMITH_API_KEY",
     "LANGSMITH_PROJECT",
+    "DATABASE_URL",  # tests must never reach a real database or cache
+    "REDIS_URL",
 ):
     os.environ.pop(_key, None)
 
