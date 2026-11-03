@@ -1,5 +1,6 @@
 """RAG agent (services/rag_agent/) and its POST /chat/documents endpoint. The LLM, the
 MCP tools and the vector store are all faked."""
+import hashlib
 import io
 from types import SimpleNamespace
 from unittest.mock import AsyncMock, MagicMock
@@ -11,9 +12,11 @@ from fastapi.testclient import TestClient
 from langchain_core.messages import AIMessage
 from langgraph.checkpoint.memory import MemorySaver
 
+from controllers import chat_controller
 from dependencies import get_rag_agent
 from services.rag.service import NO_CONTEXT_MESSAGE
 from services.rag_agent import graph as graph_module
+from services.conversation_service import ConversationNotFound, ConversationsDisabled
 from services.rag_agent import service as service_module
 from services.rag_agent.service import RagAgentService
 from services.rag_agent.tools import search_uploaded_documents
@@ -94,8 +97,9 @@ async def test_document_search_reports_errors():
 
 async def test_ingest_pdfs_indexes_readable_pdfs_only():
     rag = SimpleNamespace(ingest_document=AsyncMock(return_value="Ingested 1 chunks"))
+    pdf_bytes = _pdf("Senior Python Developer")
     files = [
-        _upload(_pdf("Senior Python Developer")),
+        _upload(pdf_bytes),
         _upload(b"notes", filename="notes.txt"),
         _upload(b"", filename="empty.pdf"),
         _upload(_pdf(None), filename="blank.pdf"),
@@ -106,7 +110,9 @@ async def test_ingest_pdfs_indexes_readable_pdfs_only():
     rag.ingest_document.assert_awaited_once()
     kwargs = rag.ingest_document.await_args.kwargs
     assert "Senior Python Developer" in kwargs["raw_text"]
-    assert (kwargs["session_id"], kwargs["source_id"]) == ("u1", "resume.pdf")
+    # source_id is the SHA-256 of the file bytes; the readable name travels separately.
+    assert (kwargs["session_id"], kwargs["source_id"]) == ("u1", hashlib.sha256(pdf_bytes).hexdigest())
+    assert kwargs["file_name"] == "resume.pdf"
 
 
 @pytest.mark.parametrize(
@@ -148,7 +154,7 @@ async def test_handle_runs_graph_with_mcp_and_document_tools(graph):
     state, = graph.ainvoke.await_args.args
     assert state["messages"][0].content == "again"
     configurable = graph.ainvoke.await_args.kwargs["config"]["configurable"]
-    assert configurable == {"thread_id": "u1", "session_id": "u1", "rag_service": "rag"}
+    assert configurable == {"thread_id": "rag:u1", "session_id": "u1", "rag_service": "rag"}
 
 
 async def test_handle_without_mcp_uses_document_search_and_retries_later(graph, monkeypatch):
@@ -175,7 +181,7 @@ async def test_handle_ingests_files_and_defaults_the_query(graph, monkeypatch):
 async def test_handle_reports_ingestion_failure(graph, monkeypatch):
     monkeypatch.setattr(service_module, "ingest_pdfs", AsyncMock(side_effect=RuntimeError))
     result = await RagAgentService(rag_service="rag").handle("q", files=[_upload(b"x")], session_id="u1")
-    assert result == "I encountered an error processing your uploaded files."
+    assert result.startswith("I encountered an error processing your uploaded files")
     graph.ainvoke.assert_not_awaited()
 
 
@@ -283,3 +289,123 @@ def test_chat_rejects_uploads_over_the_limits(rag_chat, files, expected):
     assert response.status_code == 400
     assert response.json()["detail"] == expected
     agent.handle.assert_not_awaited()
+
+
+# ── conversations: thread selection ─────────────────────────────────────────
+
+async def test_handle_uses_the_given_conversation_thread(graph):
+    await RagAgentService(rag_service="rag").handle("hi", session_id="u1", thread_id="conv-1")
+
+    configurable = graph.ainvoke.await_args.kwargs["config"]["configurable"]
+    assert configurable["thread_id"] == "conv-1"
+    assert configurable["session_id"] == "u1"  # documents stay scoped to the user
+
+
+def test_chat_continues_a_conversation(rag_chat, monkeypatch):
+    client_for, agent = rag_chat
+    monkeypatch.setattr(chat_controller, "resolve_thread", AsyncMock(return_value="conv-1"))
+    touch = AsyncMock()
+    monkeypatch.setattr(chat_controller, "touch", touch)
+
+    response = client_for("uid-1").post(
+        "/chat/documents", data={"query": "hi", "conversation_id": "conv-1"}
+    )
+
+    assert response.json() == {"response": "rag answer", "conversation_id": "conv-1"}
+    assert agent.handle.await_args.kwargs["thread_id"] == "conv-1"
+    touch.assert_awaited_once_with("uid-1", "conv-1", "hi")
+
+
+def test_chat_without_a_conversation_keeps_the_default_thread(rag_chat):
+    client_for, agent = rag_chat
+
+    client_for("uid-1").post("/chat/documents", data={"query": "hi"})
+
+    assert "thread_id" not in agent.handle.await_args.kwargs
+
+
+@pytest.mark.parametrize(
+    "error, status",
+    [(ConversationNotFound, 404), (ConversationsDisabled, 400)],
+)
+def test_chat_rejects_unusable_conversations(rag_chat, monkeypatch, error, status):
+    client_for, agent = rag_chat
+    monkeypatch.setattr(chat_controller, "resolve_thread", AsyncMock(side_effect=error))
+
+    response = client_for("uid-1").post(
+        "/chat/documents", data={"query": "hi", "conversation_id": "whatever"}
+    )
+
+    assert response.status_code == status
+    agent.handle.assert_not_awaited()
+
+
+# ── conversations: document bookkeeping during upload ───────────────────────
+
+async def test_ingest_pdfs_records_progress_in_the_registry(monkeypatch):
+    from services.rag_agent import uploads
+
+    registry = SimpleNamespace(
+        register=AsyncMock(return_value=True), mark_ready=AsyncMock(), mark_failed=AsyncMock()
+    )
+    monkeypatch.setattr(uploads, "document_registry", registry)
+    pdf_bytes = _pdf("hello")
+    rag = SimpleNamespace(ingest_document=AsyncMock(return_value="Successfully ingested 3 chunks from x."))
+
+    assert await ingest_pdfs(rag, [_upload(pdf_bytes)], "u1") is True
+
+    file_hash = hashlib.sha256(pdf_bytes).hexdigest()
+    registry.register.assert_awaited_once_with("u1", file_hash, "resume.pdf", len(pdf_bytes))
+    registry.mark_ready.assert_awaited_once_with("u1", file_hash, 3)
+    registry.mark_failed.assert_not_awaited()
+
+
+async def test_ingest_pdfs_skips_a_file_the_user_already_has(monkeypatch):
+    from services.rag_agent import uploads
+
+    monkeypatch.setattr(uploads, "document_registry", SimpleNamespace(register=AsyncMock(return_value=False)))
+    rag = SimpleNamespace(ingest_document=AsyncMock())
+
+    assert await ingest_pdfs(rag, [_upload(_pdf("hello"))], "u1") is False
+    rag.ingest_document.assert_not_awaited()
+
+
+@pytest.mark.parametrize(
+    "outcome",
+    [{"return_value": "Ingestion failed"}, {"side_effect": RuntimeError("qdrant down")}],
+)
+async def test_ingest_pdfs_marks_failed_uploads(monkeypatch, outcome):
+    from services.rag_agent import uploads
+
+    registry = SimpleNamespace(
+        register=AsyncMock(return_value=True), mark_ready=AsyncMock(), mark_failed=AsyncMock()
+    )
+    monkeypatch.setattr(uploads, "document_registry", registry)
+    rag = SimpleNamespace(ingest_document=AsyncMock(**outcome))
+
+    assert await ingest_pdfs(rag, [_upload(_pdf("hello"))], "u1") is False
+    registry.mark_failed.assert_awaited_once()
+    registry.mark_ready.assert_not_awaited()  # a failed file must not look ready
+
+
+# ── history sent to the model ───────────────────────────────────────────────
+
+def test_graph_only_sends_recent_history_to_the_model():
+    from langchain_core.messages import HumanMessage
+
+    messages = []
+    for i in range(15):
+        messages += [HumanMessage(content=f"q{i}"), AIMessage(content=f"a{i}")]
+
+    recent = graph_module._recent(messages)
+
+    assert len(recent) == graph_module.MAX_HISTORY_MESSAGES
+    assert recent[0].type == "human"  # never starts on an orphaned tool/AI message
+    assert recent[-1] is messages[-1]
+
+
+def test_graph_keeps_short_history_whole():
+    from langchain_core.messages import HumanMessage
+
+    messages = [HumanMessage(content="q"), AIMessage(content="a")]
+    assert graph_module._recent(messages) == messages

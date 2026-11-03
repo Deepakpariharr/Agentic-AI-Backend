@@ -43,7 +43,7 @@ def test_follow_up_uses_previous_result():
 
 @pytest.mark.memory
 def test_users_do_not_share_history():
-    """thread_id = user_id is the only thing separating users' chats; a bug
+    """The thread id (derived from user_id) is the only thing separating users' chats; a bug
     there would hand one user another user's conversation."""
     run_agent("Remember this: my secret project codename is BLUEHERON.", user_id=new_user_id())
 

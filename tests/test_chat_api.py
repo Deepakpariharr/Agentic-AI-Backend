@@ -9,6 +9,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from controllers import chat_controller
+from services.conversation_service import ConversationNotFound, ConversationsDisabled
 from utility.request_limits import MAX_FILE_SIZE_BYTES
 
 
@@ -129,3 +130,39 @@ def test_openai_chat_reports_failures(client, monkeypatch):
 
 def test_openai_chat_requires_message(client):
     assert client.post("/chat/openAIChat", json={}).status_code == 422
+
+
+# ── conversations (chat memory) ─────────────────────────────────────────────
+
+def test_agent_chat_continues_a_conversation(client, mock_agent, monkeypatch):
+    monkeypatch.setattr(chat_controller, "resolve_thread", AsyncMock(return_value="conv-1"))
+    touch = AsyncMock()
+    monkeypatch.setattr(chat_controller, "touch", touch)
+
+    body = client.post(
+        "/chat/mcpAgentChat", data={"message": "hi", "conversation_id": "conv-1"}
+    ).json()
+
+    assert body["data"] == {"response": "Here are some jobs", "conversation_id": "conv-1"}
+    assert mock_agent.call_args.kwargs["thread_id"] == "conv-1"
+    touch.assert_awaited_once_with("testclient", "conv-1", "hi")
+
+
+def test_agent_chat_without_a_conversation_uses_the_default_thread(client, mock_agent):
+    client.post("/chat/mcpAgentChat", data={"message": "hi"})
+    assert "thread_id" not in mock_agent.call_args.kwargs
+
+
+@pytest.mark.parametrize(
+    "error, status",
+    [(ConversationNotFound, 404), (ConversationsDisabled, 400)],
+)
+def test_agent_chat_rejects_unusable_conversations(client, mock_agent, monkeypatch, error, status):
+    monkeypatch.setattr(chat_controller, "resolve_thread", AsyncMock(side_effect=error))
+
+    body = client.post(
+        "/chat/mcpAgentChat", data={"message": "hi", "conversation_id": "whatever"}
+    ).json()
+
+    assert body["statusCode"] == status
+    mock_agent.assert_not_called()  # never reaches the model, so never reads the memory

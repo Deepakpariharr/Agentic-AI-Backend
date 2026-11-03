@@ -10,12 +10,11 @@ from fastapi import UploadFile
 
 MAX_QUERY_CHARS = 4000
 MAX_FILE_SIZE_BYTES = 1 * 1024 * 1024  # 1 MB
-# API Gateway base64-encodes binary bodies and Lambda caps a request at 6 MB,
-# so 3 x 1 MB files (~4 MB encoded) is the most that reliably gets through.
 MAX_FILES = 3
 ALLOWED_EXTENSION = ".pdf"
 
 
+# This is Like Frontend should call before sending the input to the backend in that case we can provide the input to them
 def limits() -> dict:
     """The limits above, as served by GET /chat/limits so the frontend can
     check input before sending it."""
@@ -26,19 +25,18 @@ def limits() -> dict:
         "allowedFileTypes": [ALLOWED_EXTENSION],
     }
 
-
-def validate_query(text: str, *, allow_blank: bool = False) -> Optional[str]:
-    """Check a chat message's length. Blank text is only accepted when
-    `allow_blank` is set (e.g. a file-only upload that gets a default question)."""
+def validate_query(text:str) -> Optional[str]:
     if not text.strip():
-        return None if allow_blank else "Message should not be blank"
+        return "Message must not be empty"
     if len(text) > MAX_QUERY_CHARS:
         return f"Message must be at most {MAX_QUERY_CHARS} characters"
     return None
 
 
+
+
+
 async def validate_upload(file: UploadFile) -> Optional[str]:
-    """Check one uploaded file: PDF only, at most MAX_FILE_SIZE_BYTES."""
     if not file.filename or not file.filename.lower().endswith(ALLOWED_EXTENSION):
         return "Only PDF files are allowed"
 

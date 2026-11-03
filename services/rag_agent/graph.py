@@ -1,7 +1,7 @@
 """The RAG agent's LangGraph: agent node ⇄ tool node until the model answers."""
 from typing import Annotated, TypedDict
 
-from langchain_core.messages import SystemMessage
+from langchain_core.messages import SystemMessage, trim_messages
 from langchain_core.runnables.config import RunnableConfig
 from langchain_core.tools import BaseTool
 from langgraph.checkpoint.base import BaseCheckpointSaver
@@ -11,6 +11,25 @@ from langgraph.prebuilt import ToolNode, tools_condition
 
 from prompts import RAG_SYSTEM_PROMPT
 from services.llm_factory import get_chat_model
+
+
+# Messages sent to the model per turn. The stored conversation is never cut, only
+# what the model sees, so a long chat can't keep growing the prompt and the bill.
+MAX_HISTORY_MESSAGES = 20
+
+
+def _recent(messages: list) -> list:
+    """Last MAX_HISTORY_MESSAGES, starting on a human turn so a tool result is
+    never separated from the AI message that requested it (OpenAI rejects that)."""
+    kept = trim_messages(
+        messages,
+        max_tokens=MAX_HISTORY_MESSAGES,
+        token_counter=len,  # count messages, not tokens
+        strategy="last",
+        start_on="human",
+        include_system=False,
+    )
+    return kept or messages
 
 
 class AgentState(TypedDict):
@@ -29,7 +48,7 @@ def build_graph(tools: list[BaseTool], checkpointer: BaseCheckpointSaver):
     async def agent_node(state: AgentState, config: RunnableConfig) -> dict:
         """General-purpose assistant node with bound tools."""
         response = await llm_with_tools.ainvoke(
-            [system_prompt, *state.get("messages", [])], config=config
+            [system_prompt, *_recent(state.get("messages", []))], config=config
         )
         return {"messages": [response]}
 

@@ -23,7 +23,14 @@ async def test_agent_response_scopes_history_to_user(fake_agent):
 
     assert result == "answer"
     config = fake_agent.ainvoke.call_args.kwargs["config"]
-    assert config["configurable"]["thread_id"] == "uid-42"
+    assert config["configurable"]["thread_id"] == "mcp:uid-42"  # per-user default thread
+
+
+async def test_agent_response_uses_the_conversation_thread_when_given(fake_agent):
+    await agent_service.agent_response("hello", user_id="uid-42", thread_id="conv-1")
+
+    config = fake_agent.ainvoke.call_args.kwargs["config"]
+    assert config["configurable"]["thread_id"] == "conv-1"
 
 
 async def test_agent_response_folds_pdf_text_into_prompt(fake_agent, monkeypatch):
@@ -53,6 +60,7 @@ async def test_agent_response_swallows_errors(fake_agent):
 async def test_agent_is_built_once_with_mcp_tools(monkeypatch):
     monkeypatch.setattr(agent_service, "_agent", None)
     monkeypatch.setattr(agent_service, "get_mcp_tools", AsyncMock(return_value=["tool"]))
+    monkeypatch.setattr(agent_service, "get_checkpointer", AsyncMock(return_value="saver"))
     create_agent = MagicMock(return_value="agent")
     monkeypatch.setattr(agent_service, "create_agent", create_agent)
 
@@ -63,7 +71,7 @@ async def test_agent_is_built_once_with_mcp_tools(monkeypatch):
     kwargs = create_agent.call_args.kwargs
     assert kwargs["tools"] == ["tool"]
     assert kwargs["system_prompt"] == agent_service.MCP_AGENT_SYSTEM_PROMPT
-    assert kwargs["checkpointer"] is agent_service.memory
+    assert kwargs["checkpointer"] == "saver"
 
 
 def _conversation(turns):

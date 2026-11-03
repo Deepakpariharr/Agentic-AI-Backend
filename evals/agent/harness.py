@@ -91,7 +91,7 @@ async def _run(prompt: str, user_id: str, file: UploadFile | None) -> AgentRun:
         raise RuntimeError(f"Agent errored on {prompt!r}: {output}")
 
     agent = await agent_service._get_agent()
-    state = await agent.aget_state({"configurable": {"thread_id": user_id}})
+    state = await agent.aget_state({"configurable": {"thread_id": f"mcp:{user_id}"}})  # default per-user thread
     messages = state.values.get("messages", [])
 
     # Only this turn: everything after the most recent human message.

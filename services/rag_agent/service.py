@@ -4,9 +4,10 @@ from typing import List, Optional
 
 from fastapi import UploadFile
 from langchain_core.messages import HumanMessage, SystemMessage
-from langgraph.checkpoint.memory import MemorySaver
 
 from prompts import FALLBACK_SYSTEM_PROMPT
+from services.checkpointer import get_checkpointer
+from services.conversation_service import legacy_thread_id
 from services.llm_factory import get_chat_model
 from services.mcp_client import get_mcp_tools
 from services.rag import RAGService
@@ -22,9 +23,8 @@ class RagAgentService:
 
     def __init__(self, rag_service: Optional[RAGService] = None):
         self.rag_service = rag_service
-        # Shared by every graph this service builds, so a conversation's
-        # history survives a rebuild after the MCP tools come back.
-        self._memory = MemorySaver()
+        # History lives in the shared checkpointer (Postgres when configured), so it
+        # survives a graph rebuild after the MCP tools come back, and a cold start.
         self._graph = None
         self._graph_lock = asyncio.Lock()
 
@@ -44,9 +44,11 @@ class RagAgentService:
                 mcp_tools = await get_mcp_tools()
             except Exception as exc:
                 logger.warning("MCP tools unavailable; answering with document search only: %s", exc)
-                return build_graph([search_uploaded_documents], self._memory)
+                return build_graph([search_uploaded_documents], await get_checkpointer())
 
-            self._graph = build_graph([*mcp_tools, search_uploaded_documents], self._memory)
+            self._graph = build_graph(
+                [*mcp_tools, search_uploaded_documents], await get_checkpointer()
+            )
             return self._graph
 
     async def _fallback_response(self, query: str) -> str:
@@ -62,20 +64,24 @@ class RagAgentService:
             logger.error("Direct LLM fallback execution failed: %s", exc)
             return "I'm sorry, I could not process your request at this time."
 
+
+# Handling the RAG Application Request
+# input -> files and Query with session Id which is user Id 
     async def handle(
         self,
         query: str,
         files: Optional[List[UploadFile]] = None,
         session_id: str = "default_session",
+        thread_id: Optional[str] = None,
     ) -> str:
-        # 1. INGEST FILES FIRST: Process upload before validating text query
+        # 1. Injesting file in the RAG System
         if files and self.rag_service:
             logger.info("Ingesting %d files for session %s", len(files), session_id)
             try:
                 await ingest_pdfs(self.rag_service, files, session_id)
             except Exception as e:
                 logger.error("File ingestion failed: %s", e, exc_info=True)
-                return "I encountered an error processing your uploaded files."
+                return "I encountered an error processing your uploaded files please try after sometime"
 
         # 2. DEFAULT QUERY FOR FILE-ONLY UPLOADS
         clean_query = query.strip() if query else ""
@@ -93,7 +99,7 @@ class RagAgentService:
 
         config = {
             "configurable": {
-                "thread_id": session_id,
+                "thread_id": thread_id or legacy_thread_id("rag", session_id),
                 "session_id": session_id,
                 "rag_service": self.rag_service,
             }
