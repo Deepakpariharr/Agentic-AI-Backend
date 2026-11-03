@@ -1,7 +1,7 @@
 """Evals hit the real agent, the real MCP tools and a real judge model.
 
-Unlike tests/conftest.py nothing is stubbed here: keys come from .env (or SSM
-when SSM_PREFIX is set), exactly as the running app would load them.
+Unlike tests/conftest.py nothing is stubbed here: keys come from .env,
+exactly as the running app would load them.
 """
 import pytest
 

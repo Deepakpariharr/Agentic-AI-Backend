@@ -28,8 +28,8 @@ def _extract_uid_from_state(request: Request):
 def _load_credentials() -> credentials.Certificate:
     """Load the Firebase service account credentials.
 
-    On Lambda the whole service-account JSON comes from SSM (config pulls it at
-    cold start); locally it falls back to the file on disk as before.
+    The service-account JSON can be supplied through the environment; otherwise
+    credentials are loaded from the local key file.
     """
     if FIREBASE_ADMIN_KEY:
         return credentials.Certificate(json.loads(FIREBASE_ADMIN_KEY))
@@ -48,7 +48,8 @@ async def firebase_auth_middleware(request: Request, call_next):
     if request.method == "OPTIONS":
         return await call_next(request)
 
-    # Health and API docs are public; every other route needs a valid Firebase token.
+    # Health and API docs are public; every other route needs a valid Firebase
+    # token.
     if request.url.path in ["/", "/docs", "/redoc", "/openapi.json"]:
         return await call_next(request)
 

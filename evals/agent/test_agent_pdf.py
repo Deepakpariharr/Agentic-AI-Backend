@@ -22,7 +22,7 @@ Payment due by: 11 April 2026"""
 
 RESUME_TEXT = """Priya Nair - Backend Developer
 Experience: 2 years at Zeta Labs building REST APIs with FastAPI and PostgreSQL.
-Skills: Python, FastAPI, Docker, AWS Lambda, SQL
+Skills: Python, FastAPI, SQL
 Education: B.Tech Computer Science, 2023
 Location: Pune, India"""
 

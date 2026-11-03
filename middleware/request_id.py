@@ -1,16 +1,14 @@
 
 import time
 import uuid
+import logging
 
-from aws_lambda_powertools import Logger
 from fastapi import Request
 
-logger = Logger(service="mcpbe")
+logger = logging.getLogger(__name__)
 
 async def request_id_middleware(request: Request, call_next):
-    request_id = logger.get_correlation_id() if "aws.context" in request.scope else None
-    request_id = request_id or uuid.uuid4().hex
-    logger.set_correlation_id(request_id)
+    request_id = uuid.uuid4().hex
     
     start=time.perf_counter()
     try:

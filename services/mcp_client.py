@@ -17,10 +17,8 @@ agent ever sees.
 Servers marked `required` bring the app down if they fail; everything else
 degrades to "that server's tools are missing" and logs why.
 
-Safe to reuse across warm AWS Lambda invocations too: Mangum drives the ASGI
-app with `asyncio.get_event_loop()` and does not close it between
-invocations within the same warm container, so this module-level cache
-stays valid across requests there as well.
+The process-level cache keeps server sessions alive across requests without
+restarting subprocesses or repeating handshakes.
 """
 import asyncio
 import logging
@@ -42,9 +40,8 @@ logger = logging.getLogger(__name__)
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
 # The MCP SDK starts stdio servers with only HOME/LOGNAME/PATH/SHELL/TERM/USER
-# from our environment, so SSM_PREFIX never reaches the child and its config.py
-# can't load from SSM. Pass on just the keys its tools need, as config.py in
-# this process already resolved them (SSM on Lambda, .env locally).
+# from our environment. Pass on just the keys its tools need, as config.py in
+# this process already resolved them from the environment or local .env file.
 _CAREER_TOOLS_ENV = {
     key: value
     for key, value in {"RAPIDAPI_KEY": RAPIDAPI_KEY, "TAVILY_API_KEY": TAVILY_API_KEY}.items()

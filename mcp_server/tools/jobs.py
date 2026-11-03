@@ -57,7 +57,7 @@ async def search_jobs(
         "job_requirements": experience_level,
     }
     try:
-        # JSearch routinely takes 10-20s; stay under Lambda's 30s limit.
+        # JSearch can take 10-20s; keep the request bounded.
         async with httpx.AsyncClient(timeout=25) as client:
             response = await client.get(
                 f"https://{RAPIDAPI_HOST}/search",
