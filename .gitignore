@@ -17,3 +17,6 @@ coverage.xml
 htmlcov/
 .venv/
 venv/
+node_modules/
+.DS_Store
+*.py[cod]

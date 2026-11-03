@@ -1,0 +1,24 @@
+# Local dev stack:  docker compose up -d
+# Then in .env:
+#   DATABASE_URL=postgresql://mcpbe:mcpbe@localhost:5432/mcpbe
+#   REDIS_URL=redis://localhost:6379/0
+#   QDRANT_URL=http://localhost:6333
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: mcpbe
+      POSTGRES_PASSWORD: mcpbe
+      POSTGRES_DB: mcpbe
+    ports: ["5432:5432"]
+    volumes: [pgdata:/var/lib/postgresql/data]
+  redis:
+    image: redis:7-alpine
+    ports: ["6379:6379"]
+  qdrant:
+    image: qdrant/qdrant
+    ports: ["6333:6333"]
+    volumes: [qdrantdata:/qdrant/storage]
+volumes:
+  pgdata: {}
+  qdrantdata: {}

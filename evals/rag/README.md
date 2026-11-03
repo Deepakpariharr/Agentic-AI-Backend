@@ -77,7 +77,7 @@ python -m evals.rag.run_eval --output eval-results.json
 ```
 
 Prints the same report and also writes the metrics to the file, so a run can
-be kept, compared with a later one, or published from CI:
+be kept, compared with a later one, or shared as an evaluation report:
 
 ```json
 {
@@ -88,7 +88,5 @@ be kept, compared with a later one, or published from CI:
 }
 ```
 
-The benchmark is CLI-only on purpose. It isn't exposed as an API route: a
-run takes minutes (longer than the Lambda and API Gateway 30s limits),
-`ragas` isn't installed in the Lambda image, and any logged-in user could
-otherwise trigger a paid run.
+The benchmark is CLI-only on purpose. It isn't exposed as an API route:
+a run takes minutes and any logged-in user could otherwise trigger a paid run.
