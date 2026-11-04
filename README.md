@@ -9,7 +9,6 @@ isolated end to end.
 Runs on **AWS Lambda** (container image) behind **API Gateway**, provisioned with **AWS SAM** and
 shipped through GitHub Actions.
 
-**Live app:** [dbaichat.space](https://dbaichat.space) · **API docs:** `/docs`
 
 ---
 
