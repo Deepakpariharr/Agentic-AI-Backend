@@ -147,7 +147,14 @@ deepeval test run evals/agent/
 
 ## Tech stack
 
-**API:** FastAPI, Pydantic, slowapi · **Agents:** LangGraph, LangChain, OpenAI · **Tools:** MCP (FastMCP server, stdio client), JSearch, Tavily · **Retrieval:** Qdrant (hybrid dense + BM25), FastEmbed, tiktoken · **State:** Postgres (SQLAlchemy async, psycopg 3, LangGraph checkpointer), Redis · **Auth:** Firebase · **Infra:** AWS Lambda (container), API Gateway HTTP API, SSM Parameter Store, ECR, AWS SAM, GitHub Actions (OIDC) · **Quality:** pytest, diff-cover, Ragas, deepeval, LangSmith
+**API:** FastAPI, Pydantic, slowapi · 
+**Agents:** LangGraph, LangChain, OpenAI · 
+**Tools:** MCP (FastMCP server, stdio client), JSearch, Tavily · 
+**Retrieval:** Qdrant (hybrid dense + BM25), FastEmbed, tiktoken · 
+**State:** Postgres (SQLAlchemy async, psycopg 3, LangGraph checkpointer), Redis · 
+**Auth:** Firebase · 
+**Infra:** AWS Lambda (container), API Gateway HTTP API, SSM Parameter Store, ECR, AWS SAM, GitHub Actions (OIDC) · 
+**Quality:** pytest, diff-cover, Ragas, deepeval, LangSmith
 
 ---
 
