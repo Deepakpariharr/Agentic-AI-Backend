@@ -7,7 +7,7 @@ Agent state persists in **Postgres**, retrieval is cached in **Redis**, and ever
 isolated end to end.
 
 Runs on **AWS Lambda** (container image) behind **API Gateway**, provisioned with **AWS SAM** and
-shipped through GitHub Actions.
+shipped.
 
 
 ---
