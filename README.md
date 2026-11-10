@@ -1,4 +1,4 @@
-# Agentic Backend
+# Agentic AI Backend
 
 A production, serverless agentic backend built on FastAPI. Two tool-calling agents (LangGraph and
 LangChain) reason over each user's own documents with hybrid RAG, and act through tools served by
