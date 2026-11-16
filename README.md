@@ -26,28 +26,8 @@ shipped.
 
 ## Architecture
 
-```mermaid
-flowchart TD
-    C[Client] -->|Firebase ID token| GW[API Gateway<br/>JWT authorizer + throttling]
-    GW --> APP[FastAPI on Lambda<br/>auth · rate limits · request IDs · input limits]
+<img width="742" height="694" alt="image" src="https://github.com/user-attachments/assets/679acb3f-59b1-429e-b6d9-1204872b5470" />
 
-    APP --> A1["/chat/mcpAgentChat<br/>LangChain agent"]
-    APP --> A2["/chat/documents<br/>LangGraph RAG agent"]
-    APP --> CONV["/conversations · /documents"]
-
-    A1 --> MCP[MCP client]
-    A2 --> MCP
-    MCP -->|stdio| SRV[MCP server<br/>search_jobs · search_web · calculate]
-
-    A2 --> RAG[RAG pipeline<br/>chunk · hybrid search · rerank]
-    RAG --> REDIS[(Redis<br/>retrieval cache)]
-    RAG --> QD[(Qdrant<br/>dense + BM25 vectors)]
-
-    A1 --> CP[LangGraph checkpointer]
-    A2 --> CP
-    CP --> PG[(Postgres<br/>conversations · documents · checkpoints)]
-    CONV --> PG
-```
 
 **Each store does one job:**
 
