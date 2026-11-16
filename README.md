@@ -130,7 +130,7 @@ scripts/run_tests.sh    # + coverage of lines changed vs master
 
 CI enforces **≥ 80% total coverage** and **≥ 80% coverage of changed lines** on every pull request, posts the report as a PR comment, and validates and builds the SAM template.
 
-**Evaluations** call the real models:
+##Evaluations call the real models:
 
 - **RAG** (`evals/rag/`, Ragas): runs the real retrieval → rerank → answer pipeline over a fixed benchmark (5 documents, 30 questions) in an isolated in-memory Qdrant collection and reports Recall@5, MRR, NDCG@5, Faithfulness, Answer Relevance and Answer Correctness.
 - **Agent** (`evals/agent/`, deepeval): tool selection, answering from an uploaded PDF, memory across turns, user isolation, and resistance to prompt injection.
