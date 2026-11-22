@@ -1,20 +1,20 @@
 # Agentic AI Backend
 
 A production, serverless agentic backend built on FastAPI. Two tool-calling agents (LangGraph and
-LangChain) reason over each user's own documents with hybrid RAG, and act through tools served by
-a standalone **Model Context Protocol (MCP)** server: live job search, web search and calculation.
+LangChain) reason over each user's own documents with hybrid RAG and act through a shared in-process
+toolset: live job search, web search. The same core tool functions are also exposed
+through a thin standalone **Model Context Protocol (MCP)** server adapter for external AI clients.
 Agent state persists in **Postgres**, retrieval is cached in **Redis**, and every user's data is
 isolated end to end.
 
 Runs on **AWS Lambda** (container image) behind **API Gateway**, provisioned with **AWS SAM** and
 shipped.
 
-
 ---
 
 ## Highlights
 
-- **Two agents, one toolset.** A LangChain tool-calling agent and a LangGraph RAG agent share tools exposed by a standalone MCP server (job search, web search, calculator).
+- **Two agents, one shared toolset.** A LangChain tool-calling agent and a LangGraph RAG agent invoke shared in-process tools (job search, web search, calculator) directly—avoiding subprocess and IPC overhead on Lambda. The same tool functions are also wrapped by a thin standalone MCP server adapter for external AI clients.
 - **Hybrid RAG with citations.** Dense embeddings + BM25 in Qdrant, LLM reranking (top 40 → top 5), and answers that cite the exact chunk they came from (`[resume.pdf#3]`).
 - **Durable conversation memory.** LangGraph checkpoints in Postgres, one thread per conversation, ownership-checked on every request.
 - **Retrieval cache with stampede protection.** Redis cache-aside with versioned keys, per-user invalidation and a distributed singleflight lock.
@@ -26,8 +26,7 @@ shipped.
 
 ## Architecture
 
-<img width="742" height="694" alt="image" src="https://github.com/user-attachments/assets/679acb3f-59b1-429e-b6d9-1204872b5470" />
-
+<img width="778" height="714" alt="image" src="https://github.com/user-attachments/assets/37be1e6a-8028-4136-9943-f546b7b32c78" />
 
 **Each store does one job:**
 
@@ -38,6 +37,15 @@ shipped.
 | **Redis** | Reranked retrieval results, cache versions, locks | Sub-millisecond reads, atomic counters, distributed locks |
 
 ---
+
+## Tools & MCP
+
+Internal tools run in-process on Lambda; MCP is kept at the external integration boundary.
+
+- **Framework-agnostic core (`tools/`).** Pure Python implementations for job search (JSearch), web search (Tavily), and calculation with no MCP or LangChain coupling.
+- **In-process execution on Lambda.** Both `services/agent_service.py` and `services/rag_agent/` import the same LangChain `@tool` wrappers directly in memory—one Python process per Lambda container, no `stdio` pipes, no extra cold-start handshake, and clean freeze/thaw behavior.
+- **Thin MCP server adapter (`mcp_server/`).** Wraps the exact same `tools/` functions with FastMCP so external hosts (Claude Desktop, Cursor, MCP Inspector) can consume them without penalizing the internal API path.
+- **Optional external MCP client (`services/mcp_client.py`).** Reserved for connecting to third-party MCP servers rather than self-calling internal tools.
 
 ## Conversation memory
 
@@ -100,7 +108,7 @@ All routes except `/`, `/docs`, `/redoc` and `/openapi.json` require `Authorizat
 
 ## Quality
 
-**Unit tests** cover the agents, MCP tools, RAG pipeline, caching, conversation memory, auth, tenant isolation and rate limits. The suite runs on every pull request with no secrets or network access, so results are identical locally and in CI.
+**Unit tests** cover the agents, shared tools, MCP adapter, RAG pipeline, caching, conversation memory, auth, tenant isolation and rate limits. The suite runs on every pull request with no secrets or network access, so results are identical locally and in CI.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -128,7 +136,7 @@ deepeval test run evals/agent/
 
 **API:** FastAPI, Pydantic, slowapi · 
 **Agents:** LangGraph, LangChain, OpenAI · 
-**Tools:** MCP (FastMCP server, stdio client), JSearch, Tavily · 
+**Tools:** Shared in-process Python tools (JSearch, Tavily), FastMCP adapter (external clients), optional MCP client (third-party servers) · 
 **Retrieval:** Qdrant (hybrid dense + BM25), FastEmbed, tiktoken · 
 **State:** Postgres (SQLAlchemy async, psycopg 3, LangGraph checkpointer), Redis · 
 **Auth:** Firebase · 
@@ -150,7 +158,7 @@ python -m scripts.db_migrate  # create tables and checkpoint storage
 uvicorn main:app --reload     # http://localhost:8000/docs
 ```
 
-Browse or call the MCP tools directly:
+Optionally run the standalone MCP server adapter locally to inspect the tools or connect external MCP clients:
 
 ```bash
 npx @modelcontextprotocol/inspector python -m mcp_server
@@ -202,6 +210,7 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 
 ```text
 ├── controllers/          # HTTP routes: chat, conversations, documents
+├── tools/                # Shared in-process tools (job search, web search, calculator)
 ├── services/
 │   ├── agent_service.py  # LangChain tool-calling agent
 │   ├── rag_agent/        # LangGraph RAG agent, document tool, uploads
@@ -209,8 +218,8 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 │   ├── checkpointer.py   # Durable agent memory
 │   ├── conversation_service.py
 │   ├── document_registry.py
-│   └── mcp_client.py     # MCP client (stdio / HTTP servers)
-├── mcp_server/           # MCP server and tools
+│   └── mcp_client.py     # Optional MCP client for third-party servers
+├── mcp_server/           # Thin MCP server adapter over tools/ (for external clients)
 ├── db/                   # SQLAlchemy models, engine, repositories
 ├── middleware/           # Firebase auth, rate limiting, request ids
 ├── prompts/              # All prompts + prompt-injection guard
