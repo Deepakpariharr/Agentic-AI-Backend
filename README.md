@@ -1,9 +1,8 @@
 # Agentic AI Backend
 
 A production, serverless agentic backend built on FastAPI. Two tool-calling agents (LangGraph and
-LangChain) reason over each user's own documents with hybrid RAG and act through a shared in-process
-toolset: live job search, web search. The same core tool functions are also exposed
-through a thin standalone **Model Context Protocol (MCP)** server adapter for external AI clients.
+LangChain) reason over each user's own documents with hybrid RAG, and act through tools served by
+a standalone **Model Context Protocol (MCP)** server: live job search and web search.
 Agent state persists in **Postgres**, retrieval is cached in **Redis**, and every user's data is
 isolated end to end.
 
@@ -14,7 +13,7 @@ shipped.
 
 ## Highlights
 
-- **Two agents, one shared toolset.** A LangChain tool-calling agent and a LangGraph RAG agent invoke shared in-process tools (job search, web search) directly—avoiding subprocess and IPC overhead on Lambda. The same tool functions are also wrapped by a thin standalone MCP server adapter for external AI clients.
+- **Two agents, one toolset.** A LangChain tool-calling agent and a LangGraph RAG agent share tools exposed by a standalone MCP server (job search, web search).
 - **Hybrid RAG with citations.** Dense embeddings + BM25 in Qdrant, LLM reranking (top 40 → top 5), and answers that cite the exact chunk they came from (`[resume.pdf#3]`).
 - **Durable conversation memory.** LangGraph checkpoints in Postgres, one thread per conversation, ownership-checked on every request.
 - **Retrieval cache with stampede protection.** Redis cache-aside with versioned keys, per-user invalidation and a distributed singleflight lock.
@@ -36,16 +35,11 @@ shipped.
 | **Postgres** | Conversations, document records, agent checkpoints | Transactions, constraints, ownership queries, durable agent state |
 | **Redis** | Reranked retrieval results, cache versions, locks | Sub-millisecond reads, atomic counters, distributed locks |
 
+### Known trade-offs
+
+- **Internal MCP over `stdio` on Lambda:** Both agents currently consume the standalone `FastMCP` server over `stdio` inside the Lambda container to keep the tool boundary protocol-standard and testable via MCP Inspector. Because the agents and tools live in the same Python runtime, this adds a second Python subprocess, JSON-RPC pipe overhead, and extra freeze/thaw surface area. In a higher-throughput iteration, internal tool logic would be extracted into plain in-process functions imported directly by both agents, keeping `mcp_server/` strictly as a thin external adapter (over Streamable HTTP) and reserving `services/mcp_client.py` for third-party MCP servers.
+
 ---
-
-## Tools & MCP
-
-Internal tools run in-process on Lambda; MCP is kept at the external integration boundary.
-
-- **Framework-agnostic core (`tools/`).** Pure Python implementations for job search (JSearch), web search (Tavily), and calculation with no MCP or LangChain coupling.
-- **In-process execution on Lambda.** Both `services/agent_service.py` and `services/rag_agent/` import the same LangChain `@tool` wrappers directly in memory—one Python process per Lambda container, no `stdio` pipes, no extra cold-start handshake, and clean freeze/thaw behavior.
-- **Thin MCP server adapter (`mcp_server/`).** Wraps the exact same `tools/` functions with FastMCP so external hosts (Claude Desktop, Cursor, MCP Inspector) can consume them without penalizing the internal API path.
-- **Optional external MCP client (`services/mcp_client.py`).** Reserved for connecting to third-party MCP servers rather than self-calling internal tools.
 
 ## Conversation memory
 
@@ -108,7 +102,7 @@ All routes except `/`, `/docs`, `/redoc` and `/openapi.json` require `Authorizat
 
 ## Quality
 
-**Unit tests** cover the agents, shared tools, MCP adapter, RAG pipeline, caching, conversation memory, auth, tenant isolation and rate limits. The suite runs on every pull request with no secrets or network access, so results are identical locally and in CI.
+**Unit tests** cover the agents, MCP tools, RAG pipeline, caching, conversation memory, auth, tenant isolation and rate limits. The suite runs on every pull request with no secrets or network access, so results are identical locally and in CI.
 
 ```bash
 pip install -r requirements-dev.txt
@@ -136,7 +130,7 @@ deepeval test run evals/agent/
 
 **API:** FastAPI, Pydantic, slowapi · 
 **Agents:** LangGraph, LangChain, OpenAI · 
-**Tools:** Shared in-process Python tools (JSearch, Tavily), FastMCP adapter (external clients), optional MCP client (third-party servers) · 
+**Tools:** MCP (FastMCP server, stdio client), JSearch, Tavily · 
 **Retrieval:** Qdrant (hybrid dense + BM25), FastEmbed, tiktoken · 
 **State:** Postgres (SQLAlchemy async, psycopg 3, LangGraph checkpointer), Redis · 
 **Auth:** Firebase · 
@@ -158,7 +152,7 @@ python -m scripts.db_migrate  # create tables and checkpoint storage
 uvicorn main:app --reload     # http://localhost:8000/docs
 ```
 
-Optionally run the standalone MCP server adapter locally to inspect the tools or connect external MCP clients:
+Browse or call the MCP tools directly:
 
 ```bash
 npx @modelcontextprotocol/inspector python -m mcp_server
@@ -210,7 +204,6 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 
 ```text
 ├── controllers/          # HTTP routes: chat, conversations, documents
-├── tools/                # Shared in-process tools (job search, web search, calculator)
 ├── services/
 │   ├── agent_service.py  # LangChain tool-calling agent
 │   ├── rag_agent/        # LangGraph RAG agent, document tool, uploads
@@ -218,8 +211,8 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 │   ├── checkpointer.py   # Durable agent memory
 │   ├── conversation_service.py
 │   ├── document_registry.py
-│   └── mcp_client.py     # Optional MCP client for third-party servers
-├── mcp_server/           # Thin MCP server adapter over tools/ (for external clients)
+│   └── mcp_client.py     # MCP client (stdio / HTTP servers)
+├── mcp_server/           # MCP server and tools
 ├── db/                   # SQLAlchemy models, engine, repositories
 ├── middleware/           # Firebase auth, rate limiting, request ids
 ├── prompts/              # All prompts + prompt-injection guard
