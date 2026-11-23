@@ -14,7 +14,7 @@ shipped.
 
 ## Highlights
 
-- **Two agents, one shared toolset.** A LangChain tool-calling agent and a LangGraph RAG agent invoke shared in-process tools (job search, web search, calculator) directly—avoiding subprocess and IPC overhead on Lambda. The same tool functions are also wrapped by a thin standalone MCP server adapter for external AI clients.
+- **Two agents, one shared toolset.** A LangChain tool-calling agent and a LangGraph RAG agent invoke shared in-process tools (job search, web search) directly—avoiding subprocess and IPC overhead on Lambda. The same tool functions are also wrapped by a thin standalone MCP server adapter for external AI clients.
 - **Hybrid RAG with citations.** Dense embeddings + BM25 in Qdrant, LLM reranking (top 40 → top 5), and answers that cite the exact chunk they came from (`[resume.pdf#3]`).
 - **Durable conversation memory.** LangGraph checkpoints in Postgres, one thread per conversation, ownership-checked on every request.
 - **Retrieval cache with stampede protection.** Redis cache-aside with versioned keys, per-user invalidation and a distributed singleflight lock.
