@@ -35,11 +35,7 @@ shipped.
 | **Postgres** | Conversations, document records, agent checkpoints | Transactions, constraints, ownership queries, durable agent state |
 | **Redis** | Reranked retrieval results, cache versions, locks | Sub-millisecond reads, atomic counters, distributed locks |
 
-### Known trade-offs
 
-- **Internal MCP over `stdio` on Lambda:** Both agents currently consume the standalone `FastMCP` server over `stdio` inside the Lambda container to keep the tool boundary protocol-standard and testable via MCP Inspector. Because the agents and tools live in the same Python runtime, this adds a second Python subprocess, JSON-RPC pipe overhead, and extra freeze/thaw surface area. In a higher-throughput iteration, internal tool logic would be extracted into plain in-process functions imported directly by both agents, keeping `mcp_server/` strictly as a thin external adapter (over Streamable HTTP) and reserving `services/mcp_client.py` for third-party MCP servers.
-
----
 
 ## Conversation memory
 
@@ -223,3 +219,9 @@ sam deploy --stack-name mcpbe-backend --region us-east-1 \
 ├── Dockerfile            # Lambda container image
 └── docker-compose.yml    # Local Postgres, Redis, Qdrant
 ```
+
+### Known trade-offs
+
+- **Internal MCP over `stdio` on Lambda:** Both agents currently consume the standalone `FastMCP` server over `stdio` inside the Lambda container to keep the tool boundary protocol-standard and testable via MCP Inspector. Because the agents and tools live in the same Python runtime, this adds a second Python subprocess, JSON-RPC pipe overhead, and extra freeze/thaw surface area. In a higher-throughput iteration, internal tool logic would be extracted into plain in-process functions imported directly by both agents, keeping `mcp_server/` strictly as a thin external adapter (over Streamable HTTP) and reserving `services/mcp_client.py` for third-party MCP servers.
+
+---
